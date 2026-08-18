@@ -32,6 +32,7 @@
     photo_path: row.photo_path || "",
     medical_path: row.medical_path || "",
     medical_name: row.medical_name || "",
+    version: Number(row.version || 0),
     photo_url: row.photo_url || "",
     medical_url: row.medical_url || ""
   });
@@ -54,8 +55,7 @@
     comments: member.comments || null,
     photo_path: member.photo_path || null,
     medical_path: member.medical_path || null,
-    medical_name: member.medical_name || null,
-    updated_at: new Date().toISOString()
+    medical_name: member.medical_name || null
   });
 
   async function signed(path, seconds = 3600) {
@@ -78,7 +78,7 @@
     if (kind === "medical" && !(file.type.startsWith("image/") || file.type === "application/pdf")) {
       throw new Error("Le certificat doit être une image ou un PDF.");
     }
-    const path = `${memberId}/${kind}.${ext(file)}`;
+    const path = `${memberId}/${kind}-${crypto.randomUUID()}.${ext(file)}`;
     const { error } = await client.storage.from(BUCKET).upload(path, file, {
       upsert: true,
       contentType: file.type,
@@ -88,20 +88,27 @@
     return path;
   }
 
+  async function removeFiles(paths) {
+    const clean = [...new Set(paths.filter(Boolean))];
+    if (!clean.length) return;
+    await client.storage.from(BUCKET).remove(clean);
+  }
+
   window.CloudStore = {
     async session() {
       const { data } = await client.auth.getSession();
       return data.session;
     },
-    async login(email, password) {const aliases = {
-  owner: "sgsboxemma+owner@gmail.com",
-  proprietaire: "sgsboxemma+owner@gmail.com",
-  admin: "sgsboxemma+admin@gmail.com",
-  administrateur: "sgsboxemma+admin@gmail.com",
-  coach: "sgsboxemma+coach@gmail.com"
-};
-const entered = String(email || "").trim();
-email = aliases[entered.toLowerCase()] || entered;
+    async login(email, password) {
+      const aliases = {
+        owner: "sgsboxemma+owner@gmail.com",
+        proprietaire: "sgsboxemma+owner@gmail.com",
+        admin: "sgsboxemma+admin@gmail.com",
+        administrateur: "sgsboxemma+admin@gmail.com",
+        coach: "sgsboxemma+coach@gmail.com"
+      };
+      const entered = String(email || "").trim();
+      email = aliases[entered.toLowerCase()] || entered;
       const { data, error } = await client.auth.signInWithPassword({ email, password });
       if (error) throw error;
       return data;
@@ -125,18 +132,38 @@ email = aliases[entered.toLowerCase()] || entered;
     async saveMember(member, photo, medical) {
       const oldPhoto = member.photo_path;
       const oldMedical = member.medical_path;
-      if (photo) member.photo_path = await upload(member.id, "photo", photo, 8);
-      if (medical) {
-        member.medical_path = await upload(member.id, "medical", medical, 12);
-        member.medical_name = medical.name;
-      }
-      const { error } = await client.from("members").upsert(record(member));
-      if (error) {
+      const uploaded = [];
+      try {
+        if (photo) {
+          member.photo_path = await upload(member.id, "photo", photo, 8);
+          uploaded.push(member.photo_path);
+        }
+        if (medical) {
+          member.medical_path = await upload(member.id, "medical", medical, 12);
+          member.medical_name = medical.name;
+          uploaded.push(member.medical_path);
+        }
+        const { error } = await client.rpc("save_member", {
+          p_member: record(member),
+          p_expected_version: Number(member.version || 0)
+        });
+        if (error) throw error;
+        await removeFiles([
+          photo && oldPhoto && oldPhoto !== member.photo_path ? oldPhoto : "",
+          medical && oldMedical && oldMedical !== member.medical_path ? oldMedical : ""
+        ]);
+      } catch (error) {
+        await removeFiles(uploaded);
         member.photo_path = oldPhoto;
         member.medical_path = oldMedical;
         throw error;
       }
     },
-    watch() {}
+    watch(callback) {
+      if (channel) client.removeChannel(channel);
+      channel = client.channel("sgs-member-updates").on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "member_updates"
+      }, callback).subscribe();
+    }
   };
 })();
