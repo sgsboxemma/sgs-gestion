@@ -93,7 +93,15 @@
       const { data } = await client.auth.getSession();
       return data.session;
     },
-    async login(email, password) {
+    async login(email, password) {const aliases = {
+  owner: "sgsboxemma+owner@gmail.com",
+  proprietaire: "sgsboxemma+owner@gmail.com",
+  admin: "sgsboxemma+admin@gmail.com",
+  administrateur: "sgsboxemma+admin@gmail.com",
+  coach: "sgsboxemma+coach@gmail.com"
+};
+const entered = String(email || "").trim();
+email = aliases[entered.toLowerCase()] || entered;
       const { data, error } = await client.auth.signInWithPassword({ email, password });
       if (error) throw error;
       return data;
