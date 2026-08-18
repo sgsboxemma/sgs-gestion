@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const SUPABASE_URL = "https://ainubvtxdkolggsxebic.supabase.co";
+  const SUPABASE_URL = "https://ainubvtxdkolgqsxebic.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Jg8fhC6hfcNqeS0oGQF1gQ_4jmds4yO";
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
   const BUCKET = "member-files";
