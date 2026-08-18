@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="92" fill="#090909"/>
+  <circle cx="256" cy="256" r="196" fill="none" stroke="#c81018" stroke-width="22"/>
+  <text x="256" y="235" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="118" font-weight="900">SGS</text>
+  <text x="256" y="324" text-anchor="middle" fill="#c81018" font-family="Arial,sans-serif" font-size="60" font-weight="900">BOXE</text>
+</svg>
