@@ -88,10 +88,13 @@
     return path;
   }
 
-  async function removeFiles(paths) {
+  async function removeFiles(paths, strict = false) {
     const clean = [...new Set(paths.filter(Boolean))];
     if (!clean.length) return;
-    await client.storage.from(BUCKET).remove(clean);
+    for (let i = 0; i < clean.length; i += 100) {
+      const { error } = await client.storage.from(BUCKET).remove(clean.slice(i, i + 100));
+      if (error && strict) throw error;
+    }
   }
 
   window.CloudStore = {
@@ -158,6 +161,26 @@
         member.medical_path = oldMedical;
         throw error;
       }
+    },
+    async deleteMember(id) {
+      const { data, error } = await client.rpc("delete_member", { p_id: id });
+      if (error) throw error;
+      try {
+        await removeFiles((data && data.paths) || [], true);
+      } catch (fileError) {
+        throw new Error("La fiche a été supprimée, mais certains documents n’ont pas pu être effacés : " + fileError.message);
+      }
+      return data || { count: 1, paths: [] };
+    },
+    async deleteAllMembers() {
+      const { data, error } = await client.rpc("delete_all_members");
+      if (error) throw error;
+      try {
+        await removeFiles((data && data.paths) || [], true);
+      } catch (fileError) {
+        throw new Error("Les fiches ont été supprimées, mais certains documents n’ont pas pu être effacés : " + fileError.message);
+      }
+      return data || { count: 0, paths: [] };
     },
     watch(callback) {
       if (channel) client.removeChannel(channel);
