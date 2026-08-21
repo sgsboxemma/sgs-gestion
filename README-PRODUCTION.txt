@@ -67,3 +67,12 @@ https://sgsboxemma.github.io/sgs-gestion/?install=1
 
 Ce lien laisse le choix entre Installer l'application et Continuer sur le web.
 Le navigateur affiche toujours sa propre confirmation avant l'installation.
+
+--- Mise à jour V11 ---
+- Ajout du moyen de paiement Chèque ANCV avec type obligatoire : Physique ou Dématérialisé.
+- Ajout de l'onglet Export pour Propriétaire et Administrateur.
+- Exports XLSX dédiés : LABAZ, Pass Sport, Coupon Sport et ANCV.
+- Chaque export reprend uniquement le montant réellement payé avec le moyen concerné.
+- Export ANCV filtrable : Tous, Physique, Dématérialisé.
+- Correction V10.1 conservée : âge exporté sans décimales dans l'export général.
+- Aucune migration Supabase requise pour ces changements (paiements stockés en JSON).
