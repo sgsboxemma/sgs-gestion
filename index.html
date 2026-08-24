@@ -163,17 +163,20 @@ function exportPaymentExcel(method){
      rows.push([m.last||"",m.first||"",displaySex(m.sex||""),formatBirthExcel(m.birth),fullAddress(m),amount,types]);
    }else if(method==="LABAZ"||method==="Pass Sport"){
      let codes=[...new Set(ps.map(p=>(p.code||"").trim()).filter(Boolean))].join(" / ");
-     rows.push([m.last||"",m.first||"",displaySex(m.sex||""),formatBirthExcel(m.birth),fullAddress(m),codes,amount]);
+     rows.push(["Boxe MMA",m.last||"",m.first||"",displaySex(m.sex||""),formatBirthExcel(m.birth),fullAddress(m),codes,amount]);
+   }else if(method==="Coupons Sport"){
+     rows.push(["Boxe MMA",m.last||"",m.first||"",displaySex(m.sex||""),formatBirthExcel(m.birth),fullAddress(m),amount]);
    }else rows.push([m.last||"",m.first||"",displaySex(m.sex||""),formatBirthExcel(m.birth),fullAddress(m),amount]);
  });
  rows.sort((a,b)=>String(a[0]).localeCompare(String(b[0]),"fr",{sensitivity:"base"})||String(a[1]).localeCompare(String(b[1]),"fr",{sensitivity:"base"}));
  if(!rows.length){let label=method==="Coupons Sport"?"Coupon Sport":method;alert("Aucun adhérent ne correspond à l’export "+label+(method==="Chèque ANCV"&&ancvExportFilter!=="all"?" ("+ancvExportFilter+")":"")+".");return}
  let label=method==="Coupons Sport"?"Coupon Sport":method==="Chèque ANCV"?"ANCV":method;
  let hasCode=method==="LABAZ"||method==="Pass Sport";
- let headers=method==="Chèque ANCV"?["Nom","Prénom","Sexe","Date de naissance","Adresse","Montant payé (€)","Type ANCV"]:hasCode?["Nom","Prénom","Sexe","Date de naissance","Adresse","Code","Montant payé (€)"]:["Nom","Prénom","Sexe","Date de naissance","Adresse","Montant payé (€)"];
- let widths=method==="Chèque ANCV"?[20,20,12,18,46,20,20]:hasCode?[20,20,12,18,46,24,20]:[20,20,12,18,46,20];
+ let hasSection=hasCode||method==="Coupons Sport";
+ let headers=method==="Chèque ANCV"?["Nom","Prénom","Sexe","Date de naissance","Adresse","Montant payé (€)","Type ANCV"]:hasCode?["Section","Nom","Prénom","Sexe","Date de naissance","Adresse","Code","Montant payé (€)"]:method==="Coupons Sport"?["Section","Nom","Prénom","Sexe","Date de naissance","Adresse","Montant payé (€)"]:["Nom","Prénom","Sexe","Date de naissance","Adresse","Montant payé (€)"];
+ let widths=method==="Chèque ANCV"?[20,20,12,18,46,20,20]:hasCode?[16,20,20,12,18,46,24,20]:method==="Coupons Sport"?[16,20,20,12,18,46,20]:[20,20,12,18,46,20];
  let suffix=method==="Chèque ANCV"&&ancvExportFilter!=="all"?"_"+ancvExportFilter.replace(/é/g,"e").replace(/É/g,"E"):"";
- makeSimpleXlsx(label,headers,rows,widths,"SGS_Export_"+label.replace(/ /g,"_")+suffix+"_"+new Date().toISOString().slice(0,10)+".xlsx",hasCode?6:5)
+ makeSimpleXlsx(label,headers,rows,widths,"SGS_Export_"+label.replace(/ /g,"_")+suffix+"_"+new Date().toISOString().slice(0,10)+".xlsx",hasSection?(hasCode?7:6):5)
 }
 
 function applyRole(){let role=currentRole;document.querySelectorAll(".ownerOnly").forEach(el=>el.classList.toggle("hiddenOwner",role!=="owner"));document.querySelectorAll(".adminOnly").forEach(el=>el.classList.toggle("hiddenAdmin",role==="coach"));if(role==="coach"){document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));document.querySelectorAll("main section").forEach(s=>s.classList.add("hide"));document.querySelector('[data-p="coach"]').classList.add("on");coach.classList.remove("hide")}}
