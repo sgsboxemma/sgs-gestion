@@ -132,6 +132,33 @@
       const rows = Array.isArray(data) ? data : [];
       return Promise.all(rows.map(row => withUrls(normalize(row), role)));
     },
+    async loadTrials() {
+      const { data, error } = await client.from("trial_members").select("id,last_name,first_name,trial_start,created_at").order("last_name").order("first_name");
+      if (error) throw error;
+      return (data || []).map(row => ({ id: row.id, last: row.last_name || "", first: row.first_name || "", start: row.trial_start || "", created_at: row.created_at || "" }));
+    },
+    async saveTrial(trial) {
+      const { data, error } = await client.from("trial_members").insert({
+        last_name: String(trial.last || "").trim(),
+        first_name: String(trial.first || "").trim(),
+        trial_start: trial.start
+      }).select("id").single();
+      if (error) throw error;
+      return data;
+    },
+    async deleteTrial(id) {
+      const { error } = await client.from("trial_members").delete().eq("id", id);
+      if (error) throw error;
+    },
+    async deleteTrials(ids) {
+      if (!Array.isArray(ids) || !ids.length) return;
+      const { error } = await client.from("trial_members").delete().in("id", ids);
+      if (error) throw error;
+    },
+    async deleteAllTrials() {
+      const { error } = await client.from("trial_members").delete().not("id", "is", null);
+      if (error) throw error;
+    },
     async saveMember(member, photo, medical) {
       const oldPhoto = member.photo_path;
       const oldMedical = member.medical_path;
@@ -184,9 +211,10 @@
     },
     watch(callback) {
       if (channel) client.removeChannel(channel);
-      channel = client.channel("sgs-member-updates").on("postgres_changes", {
-        event: "UPDATE", schema: "public", table: "member_updates"
-      }, callback).subscribe();
+      channel = client.channel("sgs-app-updates")
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "member_updates" }, callback)
+        .on("postgres_changes", { event: "*", schema: "public", table: "trial_members" }, callback)
+        .subscribe();
     }
   };
 })();
