@@ -119,6 +119,14 @@
     async logout() {
       await client.auth.signOut();
     },
+    onAuthStateChange(callback) {
+      return client.auth.onAuthStateChange((event, session) => callback(event, session));
+    },
+    async updatePassword(password) {
+      const { data, error } = await client.auth.updateUser({ password });
+      if (error) throw error;
+      return data;
+    },
     async role() {
       const { data: auth } = await client.auth.getUser();
       if (!auth.user) throw new Error("Session expirée.");
