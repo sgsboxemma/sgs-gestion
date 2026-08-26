@@ -108,7 +108,7 @@
         proprietaire: "sgsboxemma+owner@gmail.com",
         admin: "sgsboxemma+admin@gmail.com",
         administrateur: "sgsboxemma+admin@gmail.com",
-        coach: "sgsboxemma+coach@gmail.com"
+        coach: "sgsboxemma+coach2@gmail.com"
       };
       const entered = String(email || "").trim();
       email = aliases[entered.toLowerCase()] || entered;
