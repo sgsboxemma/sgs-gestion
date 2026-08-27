@@ -76,3 +76,8 @@ Le navigateur affiche toujours sa propre confirmation avant l'installation.
 - Export ANCV filtrable : Tous, Physique, Dématérialisé.
 - Correction V10.1 conservée : âge exporté sans décimales dans l'export général.
 - Aucune migration Supabase requise pour ces changements (paiements stockés en JSON).
+
+=== MISE A JOUR V15 ===
+Avant de publier les fichiers V15 sur GitHub Pages, executer dans Supabase > SQL Editor
+avec le role postgres le fichier : supabase-v15-disciplines-essai.sql
+Cette migration ajoute la colonne disciplines aux cours d'essai existants.

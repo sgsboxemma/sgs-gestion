@@ -141,18 +141,26 @@
       return Promise.all(rows.map(row => withUrls(normalize(row), role)));
     },
     async loadTrials() {
-      const { data, error } = await client.from("trial_members").select("id,last_name,first_name,trial_start,created_at").order("last_name").order("first_name");
+      const { data, error } = await client.from("trial_members").select("id,last_name,first_name,trial_start,disciplines,created_at").order("last_name").order("first_name");
       if (error) throw error;
-      return (data || []).map(row => ({ id: row.id, last: row.last_name || "", first: row.first_name || "", start: row.trial_start || "", created_at: row.created_at || "" }));
+      return (data || []).map(row => ({ id: row.id, last: row.last_name || "", first: row.first_name || "", start: row.trial_start || "", acts: row.disciplines || [], created_at: row.created_at || "" }));
     },
     async saveTrial(trial) {
       const { data, error } = await client.from("trial_members").insert({
         last_name: String(trial.last || "").trim(),
         first_name: String(trial.first || "").trim(),
-        trial_start: trial.start
+        trial_start: trial.start,
+        disciplines: trial.acts || []
       }).select("id").single();
       if (error) throw error;
       return data;
+    },
+    async updateTrialDisciplines(id, disciplines) {
+      const { error } = await client.from("trial_members").update({
+        disciplines: Array.isArray(disciplines) ? disciplines : [],
+        updated_at: new Date().toISOString()
+      }).eq("id", id);
+      if (error) throw error;
     },
     async deleteTrial(id) {
       const { error } = await client.from("trial_members").delete().eq("id", id);

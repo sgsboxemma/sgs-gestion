@@ -1,4 +1,4 @@
--- SGS Gestion V13 - Cours d'essai
+-- SGS Gestion V15 - Cours d'essai
 -- A exécuter UNE SEULE FOIS dans Supabase > SQL Editor.
 
 create table if not exists public.trial_members (
@@ -6,6 +6,7 @@ create table if not exists public.trial_members (
   last_name text not null,
   first_name text not null,
   trial_start date not null default current_date,
+  disciplines text[] not null default '{}'::text[],
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
