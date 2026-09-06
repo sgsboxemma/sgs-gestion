@@ -32,6 +32,7 @@
     photo_path: row.photo_path || "",
     medical_path: row.medical_path || "",
     medical_name: row.medical_name || "",
+    created_at: row.created_at || "",
     version: Number(row.version || 0),
     photo_url: row.photo_url || "",
     medical_url: row.medical_url || ""
@@ -175,6 +176,12 @@
       const { error } = await client.from("trial_members").delete().not("id", "is", null);
       if (error) throw error;
     },
+    async downloadMemberFile(path) {
+      if (!path) return null;
+      const { data, error } = await client.storage.from(BUCKET).download(path);
+      if (error) throw error;
+      return data;
+    },
     async saveMember(member, photo, medical) {
       const oldPhoto = member.photo_path;
       const oldMedical = member.medical_path;
@@ -202,6 +209,28 @@
         await removeFiles(uploaded);
         member.photo_path = oldPhoto;
         member.medical_path = oldMedical;
+        throw error;
+      }
+    },
+    async restoreMember(member, photo, medical) {
+      const uploaded = [];
+      try {
+        const row = record({ ...member, photo_path: "", medical_path: "" });
+        if (photo) {
+          row.photo_path = await upload(member.id, "photo", photo, 8);
+          uploaded.push(row.photo_path);
+        }
+        if (medical) {
+          row.medical_path = await upload(member.id, "medical", medical, 12);
+          row.medical_name = medical.name;
+          uploaded.push(row.medical_path);
+        }
+        if (member.created_at) row.created_at = member.created_at;
+        row.version = 1;
+        const { error } = await client.from("members").insert(row);
+        if (error) throw error;
+      } catch (error) {
+        await removeFiles(uploaded);
         throw error;
       }
     },
