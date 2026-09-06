@@ -82,7 +82,7 @@ Avant de publier les fichiers V15 sur GitHub Pages, executer dans Supabase > SQL
 avec le role postgres le fichier : supabase-v15-disciplines-essai.sql
 Cette migration ajoute la colonne disciplines aux cours d'essai existants.
 
-V15.3.6 - Vue Coach documents
+V15.3.7 - Vue Coach documents
 - Executer supabase-v15-3-6-coach-documents.sql en role postgres AVANT GitHub.
 - Le script ne modifie/supprime aucun adherent lors de son installation.
 - Le Coach reste en lecture seule sauf Ajouter/Modifier photo et certificat depuis la fiche adherent.
