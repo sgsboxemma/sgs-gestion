@@ -32,6 +32,8 @@
     photo_path: row.photo_path || "",
     medical_path: row.medical_path || "",
     medical_name: row.medical_name || "",
+    has_medical: row.has_medical === true || !!row.medical_path,
+    payment_ok: row.payment_ok === true,
     created_at: row.created_at || "",
     version: Number(row.version || 0),
     photo_url: row.photo_url || "",
@@ -68,7 +70,7 @@
 
   async function withUrls(member, role) {
     member.photo_url = await signed(member.photo_path);
-    if (role !== "coach") member.medical_url = await signed(member.medical_path);
+    member.medical_url = await signed(member.medical_path);
     return member;
   }
 
@@ -81,7 +83,7 @@
     }
     const path = `${memberId}/${kind}-${crypto.randomUUID()}.${ext(file)}`;
     const { error } = await client.storage.from(BUCKET).upload(path, file, {
-      upsert: true,
+      upsert: false,
       contentType: file.type,
       cacheControl: "3600"
     });
@@ -181,6 +183,36 @@
       const { data, error } = await client.storage.from(BUCKET).download(path);
       if (error) throw error;
       return data;
+    },
+    async saveCoachDocument(memberId, kind, file) {
+      if (!memberId || !["photo", "medical"].includes(kind)) throw new Error("Document invalide.");
+      const path = await upload(memberId, kind, file, kind === "photo" ? 8 : 12);
+      let linked = false;
+      try {
+        const { data, error } = await client.rpc("coach_set_member_document", {
+          p_id: memberId,
+          p_kind: kind,
+          p_path: path,
+          p_name: kind === "medical" ? (file.name || "certificat") : null
+        });
+        if (error) throw error;
+        linked = true;
+        const oldPath = data && data.old_path ? String(data.old_path) : "";
+        let cleanupWarning = "";
+        if (oldPath && oldPath !== path) {
+          try {
+            await removeFiles([oldPath], true);
+          } catch (cleanupError) {
+            cleanupWarning = cleanupError && cleanupError.message ? cleanupError.message : "Suppression de l’ancien fichier impossible.";
+          }
+        }
+        return { ...(data || {}), cleanup_warning: cleanupWarning };
+      } catch (error) {
+        if (!linked) {
+          try { await removeFiles([path], true); } catch (_) {}
+        }
+        throw new Error(`Le document n’a pas pu être enregistré : ${error.message}`);
+      }
     },
     async saveMember(member, photo, medical) {
       const oldPhoto = member.photo_path;

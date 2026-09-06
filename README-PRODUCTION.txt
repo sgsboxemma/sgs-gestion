@@ -51,8 +51,8 @@ CORRECTION SUPPRESSION GLOBALE V9.11
 
 SÉCURITÉ
 - Ne jamais placer une Secret key ou service_role dans ces fichiers.
-- Le certificat médical est inaccessible au Coach.
-- Les photos sont accessibles aux trois rôles connectés.
+- Les photos et certificats médicaux sont accessibles aux trois rôles connectés.
+- Le Coach reste en lecture seule sur la fiche, sauf ajout/remplacement de la photo et du certificat.
 - Les données financières complètes sont refusées au Coach par la base.
 - La clé publishable présente dans cloud.js est volontairement publique ;
   la protection repose sur Auth et les règles RLS installées par le SQL.
@@ -81,3 +81,11 @@ Le navigateur affiche toujours sa propre confirmation avant l'installation.
 Avant de publier les fichiers V15 sur GitHub Pages, executer dans Supabase > SQL Editor
 avec le role postgres le fichier : supabase-v15-disciplines-essai.sql
 Cette migration ajoute la colonne disciplines aux cours d'essai existants.
+
+V15.3.6 - Vue Coach documents
+- Executer supabase-v15-3-6-coach-documents.sql en role postgres AVANT GitHub.
+- Le script ne modifie/supprime aucun adherent lors de son installation.
+- Le Coach reste en lecture seule sauf Ajouter/Modifier photo et certificat depuis la fiche adherent.
+- Son statut A jour / Pas a jour est base uniquement sur le paiement, sans exposer le detail financier.
+- Le Coach peut ouvrir le certificat medical depuis la fiche.
+- Apres remplacement reussi, seul l'ancien fichier devenu orphelin peut etre supprime du Storage.
