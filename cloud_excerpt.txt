@@ -11,7 +11,6 @@
   const documentUrlMemory = new Map();
   const PHOTO_BLOB_CACHE = "sgs-member-photo-blobs-v1";
   const photoObjectUrlMemory = new Map();
-  const photoLoadPromises = new Map();
 
   function readPhotoUrlCache() {
     try {
@@ -179,9 +178,9 @@
     try {
       const img = await loadImageElement(file);
       const isPhoto = kind === "photo";
-      const maxSide = isPhoto ? 720 : 1400;
-      const targetBytes = isPhoto ? 100 * 1024 : 350 * 1024;
-      const hardMaxBytes = isPhoto ? 180 * 1024 : 700 * 1024;
+      const maxSide = isPhoto ? 900 : 1600;
+      const targetBytes = isPhoto ? 150 * 1024 : 500 * 1024;
+      const hardMaxBytes = isPhoto ? 280 * 1024 : 850 * 1024;
       const largest = Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height);
       if (!largest) return file;
 
@@ -200,7 +199,7 @@
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
 
-        const qualities = isPhoto ? [0.76, 0.68, 0.60, 0.52] : [0.82, 0.74, 0.66, 0.58];
+        const qualities = isPhoto ? [0.78, 0.70, 0.62, 0.54] : [0.84, 0.76, 0.68, 0.60];
         for (const quality of qualities) {
           const blob = await canvasBlob(canvas, quality);
           if (!blob) continue;
@@ -226,25 +225,7 @@
     }
   }
 
-  async function storePhotoLocally(path, blob) {
-    if (!path || !blob || !("caches" in window)) return;
-    try {
-      const cache = await caches.open(PHOTO_BLOB_CACHE);
-      const key = photoCacheRequest(path);
-      await cache.put(key, new Response(blob, {
-        headers: {
-          "Content-Type": blob.type || "image/jpeg",
-          "Cache-Control": "public, max-age=31536000, immutable"
-        }
-      }));
-      const previous = photoObjectUrlMemory.get(path);
-      if (previous) { try { URL.revokeObjectURL(previous); } catch (_) {} }
-      const objectUrl = URL.createObjectURL(blob);
-      photoObjectUrlMemory.set(path, objectUrl);
-    } catch (_) {}
-  }
-
-  async function cachedPhotoUrlInternal(path) {
+  async function cachedPhotoUrl(path) {
     if (!path) return "";
     const memoryUrl = photoObjectUrlMemory.get(path);
     if (memoryUrl) return memoryUrl;
@@ -290,15 +271,6 @@
     return signed(path, 86400, true);
   }
 
-  async function cachedPhotoUrl(path) {
-    if (!path) return "";
-    const existing = photoLoadPromises.get(path);
-    if (existing) return existing;
-    const promise = cachedPhotoUrlInternal(path).finally(() => photoLoadPromises.delete(path));
-    photoLoadPromises.set(path, promise);
-    return promise;
-  }
-
   async function upload(memberId, kind, file, limitMb) {
     if (!file) return null;
     if (kind === "photo" && !file.type.startsWith("image/")) throw new Error("La photo doit être une image.");
@@ -307,8 +279,8 @@
     }
     file = await optimizeImage(file, kind);
     // Hard post-optimization caps prevent a large unsupported image from entering Storage.
-    if (kind === "photo" && file.size > 250 * 1024) {
-      throw new Error("La photo reste trop lourde après optimisation (250 Ko maximum).");
+    if (kind === "photo" && file.size > 400 * 1024) {
+      throw new Error("La photo reste trop lourde après optimisation (400 Ko maximum).");
     }
     if (kind === "medical" && String(file.type || "").startsWith("image/") && file.size > 1024 * 1024) {
       throw new Error("L’image du certificat reste trop lourde après optimisation (1 Mo maximum). Utilisez un PDF si nécessaire.");
@@ -322,9 +294,6 @@
       cacheControl: "31536000"
     });
     if (error) throw error;
-    // Seed the local browser cache with the exact optimized photo that was just uploaded.
-    // This avoids downloading the same photo back from Supabase on the uploader device.
-    if (kind === "photo") await storePhotoLocally(path, file);
     return path;
   }
 
@@ -489,59 +458,3 @@
         ]);
       } catch (error) {
         await removeFiles(uploaded);
-        member.photo_path = oldPhoto;
-        member.medical_path = oldMedical;
-        throw error;
-      }
-    },
-    async restoreMember(member, photo, medical) {
-      const uploaded = [];
-      try {
-        const row = record({ ...member, photo_path: "", medical_path: "" });
-        if (photo) {
-          row.photo_path = await upload(member.id, "photo", photo, 8);
-          uploaded.push(row.photo_path);
-        }
-        if (medical) {
-          row.medical_path = await upload(member.id, "medical", medical, 12);
-          row.medical_name = medical.name;
-          uploaded.push(row.medical_path);
-        }
-        if (member.created_at) row.created_at = member.created_at;
-        row.version = 1;
-        const { error } = await client.from("members").insert(row);
-        if (error) throw error;
-      } catch (error) {
-        await removeFiles(uploaded);
-        throw error;
-      }
-    },
-    async deleteMember(id) {
-      const { data, error } = await client.rpc("delete_member", { p_id: id });
-      if (error) throw error;
-      try {
-        await removeFiles((data && data.paths) || [], true);
-      } catch (fileError) {
-        throw new Error("La fiche a été supprimée, mais certains documents n’ont pas pu être effacés : " + fileError.message);
-      }
-      return data || { count: 1, paths: [] };
-    },
-    async deleteAllMembers() {
-      const { data, error } = await client.rpc("delete_all_members");
-      if (error) throw error;
-      try {
-        await removeFiles((data && data.paths) || [], true);
-      } catch (fileError) {
-        throw new Error("Les fiches ont été supprimées, mais certains documents n’ont pas pu être effacés : " + fileError.message);
-      }
-      return data || { count: 0, paths: [] };
-    },
-    watch(callback) {
-      if (channel) client.removeChannel(channel);
-      channel = client.channel("sgs-app-updates")
-        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "member_updates" }, callback)
-        .on("postgres_changes", { event: "*", schema: "public", table: "trial_members" }, callback)
-        .subscribe();
-    }
-  };
-})();
