@@ -38,7 +38,7 @@ begin
   elsif v_has_child and jsonb_array_length(coalesce(m.acts,'[]'::jsonb)) = 1 then
     v_theory := 220;
   elsif v_ado_count > 0 and v_adult_count = 0 and not v_has_baby and not v_has_child then
-    v_theory := case v_ado_count when 1 then 220 when 2 then 340 else 380 end;
+    v_theory := case v_ado_count when 1 then 220 when 2 then 300 else 380 end;
   elsif v_adult_count > 0 and v_ado_count = 0 and not v_has_baby and not v_has_child then
     v_theory := case v_adult_count when 1 then 270 when 2 then 350 else 400 end;
   else
