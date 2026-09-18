@@ -536,11 +536,13 @@
       }
       return data || { count: 0, paths: [] };
     },
-    watch(callback) {
+    watch(callbacks) {
       if (channel) client.removeChannel(channel);
+      const memberCallback = callbacks && typeof callbacks === "object" ? callbacks.members : callbacks;
+      const trialCallback = callbacks && typeof callbacks === "object" ? callbacks.trials : callbacks;
       channel = client.channel("sgs-app-updates")
-        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "member_updates" }, callback)
-        .on("postgres_changes", { event: "*", schema: "public", table: "trial_members" }, callback)
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "member_updates" }, payload => { if (typeof memberCallback === "function") memberCallback(payload); })
+        .on("postgres_changes", { event: "*", schema: "public", table: "trial_members" }, payload => { if (typeof trialCallback === "function") trialCallback(payload); })
         .subscribe();
     }
   };
