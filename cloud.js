@@ -384,6 +384,17 @@
       void pruneLocalPhotoCache(members.map(member => member.photo_path).filter(Boolean));
       return members;
     },
+    async loadFamilyLinks() {
+      const { data, error } = await client.from("member_family_links").select("member_id,family_id");
+      if (error) throw error;
+      return (data || []).map(row => ({ member_id: row.member_id, family_id: row.family_id }));
+    },
+    async restoreFamilyLinks(links) {
+      const rows = (links || []).filter(x => x && x.member_id && x.family_id).map(x => ({ member_id: x.member_id, family_id: x.family_id }));
+      if (!rows.length) return;
+      const { error } = await client.from("member_family_links").upsert(rows, { onConflict: "member_id" });
+      if (error) throw error;
+    },
     async loadTrials() {
       const { data, error } = await client.from("trial_members").select("id,last_name,first_name,trial_start,disciplines,created_at").order("last_name").order("first_name");
       if (error) throw error;
@@ -464,7 +475,7 @@
         throw new Error(`Le document n’a pas pu être enregistré : ${error.message}`);
       }
     },
-    async saveMember(member, photo, medical) {
+    async saveMember(member, photo, medical, familyAnchorId = null) {
       const oldPhoto = member.photo_path;
       const oldMedical = member.medical_path;
       const uploaded = [];
@@ -478,9 +489,10 @@
           member.medical_name = medical.name;
           uploaded.push(member.medical_path);
         }
-        const { error } = await client.rpc("save_member", {
+        const { error } = await client.rpc("save_member_v15415", {
           p_member: record(member),
-          p_expected_version: Number(member.version || 0)
+          p_expected_version: Number(member.version || 0),
+          p_family_anchor_id: familyAnchorId || null
         });
         if (error) throw error;
         await removeFiles([
