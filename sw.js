@@ -1,5 +1,5 @@
-const CACHE = "sgs-gestion-v15.4.22";
-const ASSETS = ["./", "./index.html", "./cloud.js?v=15.4.22", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
+const CACHE = "sgs-gestion-v15.4.23";
+const ASSETS = ["./", "./index.html", "./cloud.js?v=15.4.23", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 self.addEventListener("install", event => event.waitUntil(Promise.all([self.skipWaiting(),caches.open(CACHE).then(cache => cache.addAll(ASSETS))])));
 self.addEventListener("activate", event => event.waitUntil((async()=>{
   const keys=await caches.keys();
